@@ -16,8 +16,15 @@ import (
 	"auth_blog_service/models"
 )
 
-func GetRoles(connection *mongo.Database) func(w http.ResponseWriter, r *http.Request) {
+func GetRoles(connection *mongo.Database, permissions ...string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		auth, authErr := helpers.CheckPermissions(connection, r, permissions)
+
+		if !auth {
+			helpers.JSONError(fmt.Errorf(authErr.Error()), w, 400)
+			return
+		}
+
 		var roles []models.Role = []models.Role{}
 
 		cur, err := connection.Collection("roles").Find(context.TODO(), bson.M{})
@@ -50,8 +57,15 @@ func GetRoles(connection *mongo.Database) func(w http.ResponseWriter, r *http.Re
 	}
 }
 
-func CreateRole(connection *mongo.Database) func(w http.ResponseWriter, r *http.Request) {
+func CreateRole(connection *mongo.Database, permissions ...string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		auth, authErr := helpers.CheckPermissions(connection, r, permissions)
+
+		if !auth {
+			helpers.JSONError(fmt.Errorf(authErr.Error()), w, 400)
+			return
+		}
+
 		var role models.Role
 		var aux models.Role
 
@@ -87,8 +101,15 @@ func CreateRole(connection *mongo.Database) func(w http.ResponseWriter, r *http.
 	}
 }
 
-func GetRoleById(connection *mongo.Database) func(w http.ResponseWriter, r *http.Request) {
+func GetRoleById(connection *mongo.Database, permissions ...string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		auth, authErr := helpers.CheckPermissions(connection, r, permissions)
+
+		if !auth {
+			helpers.JSONError(fmt.Errorf(authErr.Error()), w, 400)
+			return
+		}
+
 		var role models.Role
 
 		var params = mux.Vars(r)
@@ -108,8 +129,15 @@ func GetRoleById(connection *mongo.Database) func(w http.ResponseWriter, r *http
 	}
 }
 
-func UpdateRoleById(connection *mongo.Database) func(w http.ResponseWriter, r *http.Request) {
+func UpdateRoleById(connection *mongo.Database, permissions ...string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		auth, authErr := helpers.CheckPermissions(connection, r, permissions)
+
+		if !auth {
+			helpers.JSONError(fmt.Errorf(authErr.Error()), w, 400)
+			return
+		}
+
 		var role models.Role
 		var aux1 models.Role
 		var aux2 models.Role
@@ -135,8 +163,6 @@ func UpdateRoleById(connection *mongo.Database) func(w http.ResponseWriter, r *h
 			bson.M{"name": role.Name},
 		).Decode(&aux2)
 
-		fmt.Println("Encontrado", aux1, aux2)
-
 		if err == nil && aux1.ID != aux2.ID {
 			helpers.JSONError(fmt.Errorf("A Role with this name already exists"), w, 400)
 			return
@@ -149,19 +175,28 @@ func UpdateRoleById(connection *mongo.Database) func(w http.ResponseWriter, r *h
 			},
 		}
 
-		result, err := connection.Collection("roles").UpdateOne(context.TODO(), bson.M{"_id": id}, update)
+		_, err = connection.Collection("roles").UpdateOne(context.TODO(), bson.M{"_id": id}, update)
 
 		if err != nil {
 			helpers.JSONError(err, w, 400)
 			return
 		}
 
-		helpers.JSONResult(result, 200, w)
+		role.ID = id
+
+		helpers.JSONResult(role, 200, w)
 	}
 }
 
-func DeleteRoleById(connection *mongo.Database) func(w http.ResponseWriter, r *http.Request) {
+func DeleteRoleById(connection *mongo.Database, permissions ...string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		auth, authErr := helpers.CheckPermissions(connection, r, permissions)
+
+		if !auth {
+			helpers.JSONError(fmt.Errorf(authErr.Error()), w, 400)
+			return
+		}
+
 		var params = mux.Vars(r)
 
 		id, _ := primitive.ObjectIDFromHex(params["id"])

@@ -19,10 +19,10 @@ func main() {
 
 	r.HandleFunc("/health", HealthResponse).Methods("GET")
 	r.HandleFunc("/api/roles", controllers.GetRoles(connection)).Methods("GET")
-	r.HandleFunc("/api/roles", controllers.CreateRole(connection)).Methods("POST")
+	r.HandleFunc("/api/roles", controllers.CreateRole(connection, "role.create")).Methods("POST")
 	r.HandleFunc("/api/roles/{id}", controllers.GetRoleById(connection)).Methods("GET")
-	r.HandleFunc("/api/roles/{id}", controllers.UpdateRoleById(connection)).Methods("PUT")
-	r.HandleFunc("/api/roles/{id}", controllers.DeleteRoleById(connection)).Methods("DELETE")
+	r.HandleFunc("/api/roles/{id}", controllers.UpdateRoleById(connection, "role.update")).Methods("PUT")
+	r.HandleFunc("/api/roles/{id}", controllers.DeleteRoleById(connection, "role.delete")).Methods("DELETE")
 
 	var port = os.Getenv("PORT")
 
