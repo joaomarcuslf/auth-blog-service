@@ -9,6 +9,7 @@
 
 ```sh
 $ yarn install
+$ cp sample.env .env
 $ docker-compose up --build
 ```
 
