@@ -1,0 +1,20 @@
+{
+  "name": "auth-blog-service",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "João Marcus de Lemos Fernandes <jmarcusfernandes@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "prepare": "husky install",
+    "pre-commit": "lint-staged"
+  },
+  "keywords": [],
+  "description": "",
+  "devDependencies": {
+    "husky": "^7.0.1",
+    "lint-staged": "^11.1.0"
+  },
+  "lint-staged": {
+    "*.go": "echo 'Testing Go' && cd api && go build main.go && rm main"
+  }
+}
