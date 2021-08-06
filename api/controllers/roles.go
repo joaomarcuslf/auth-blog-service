@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gopkg.in/mgo.v2/bson"
 
@@ -82,5 +84,100 @@ func CreateRole(connection *mongo.Database) func(w http.ResponseWriter, r *http.
 		}
 
 		helpers.JSONResult(result, 200, w)
+	}
+}
+
+func GetRoleById(connection *mongo.Database) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var role models.Role
+
+		var params = mux.Vars(r)
+
+		id, _ := primitive.ObjectIDFromHex(params["id"])
+
+		filter := bson.M{"_id": id}
+
+		err := connection.Collection("roles").FindOne(context.TODO(), filter).Decode(&role)
+
+		if err != nil {
+			helpers.JSONError(fmt.Errorf("Role doesn't exist required"), w, 400)
+			return
+		}
+
+		helpers.JSONResult(role, 200, w)
+	}
+}
+
+func UpdateRoleById(connection *mongo.Database) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var role models.Role
+		var aux1 models.Role
+		var aux2 models.Role
+
+		var params = mux.Vars(r)
+
+		id, _ := primitive.ObjectIDFromHex(params["id"])
+
+		_ = json.NewDecoder(r.Body).Decode(&role)
+
+		err := connection.Collection("roles").FindOne(
+			context.TODO(),
+			bson.M{"_id": id},
+		).Decode(&aux1)
+
+		if err != nil {
+			helpers.JSONError(fmt.Errorf("Requested Role doesn't exist"), w, 400)
+			return
+		}
+
+		err = connection.Collection("roles").FindOne(
+			context.TODO(),
+			bson.M{"name": role.Name},
+		).Decode(&aux2)
+
+		fmt.Println("Encontrado", aux1, aux2)
+
+		if err == nil && aux1.ID != aux2.ID {
+			helpers.JSONError(fmt.Errorf("A Role with this name already exists"), w, 400)
+			return
+		}
+
+		update := bson.M{
+			"$set": bson.M{
+				"name":        role.Name,
+				"permissions": role.Permissions,
+			},
+		}
+
+		result, err := connection.Collection("roles").UpdateOne(context.TODO(), bson.M{"_id": id}, update)
+
+		if err != nil {
+			helpers.JSONError(err, w, 400)
+			return
+		}
+
+		helpers.JSONResult(result, 200, w)
+	}
+}
+
+func DeleteRoleById(connection *mongo.Database) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var params = mux.Vars(r)
+
+		id, _ := primitive.ObjectIDFromHex(params["id"])
+
+		result, err := connection.Collection("roles").DeleteOne(context.TODO(), bson.M{"_id": id})
+
+		if err != nil {
+			helpers.JSONError(err, w, 400)
+			return
+		}
+
+		if result.DeletedCount == 0 {
+			helpers.JSONError(fmt.Errorf("Requested Role doesn't exist"), w, 400)
+			return
+		}
+
+		helpers.JSONResult(nil, 200, w)
 	}
 }
