@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"gopkg.in/mgo.v2/bson"
 
+	constants "auth_blog_service/constants"
 	helpers "auth_blog_service/helpers"
 	"auth_blog_service/models"
 )
@@ -21,7 +22,7 @@ func GetRoles(connection *mongo.Database, permissions ...string) func(w http.Res
 		auth, authErr := helpers.CheckPermissions(connection, r, permissions)
 
 		if !auth {
-			helpers.JSONError(fmt.Errorf(authErr.Error()), w, 400)
+			helpers.JSONError(fmt.Errorf(authErr.Error()), w, constants.Unauthorized)
 			return
 		}
 
@@ -30,7 +31,7 @@ func GetRoles(connection *mongo.Database, permissions ...string) func(w http.Res
 		cur, err := connection.Collection("roles").Find(context.TODO(), bson.M{})
 
 		if err != nil {
-			helpers.JSONError(err, w, 404)
+			helpers.JSONError(err, w, constants.BadRequest)
 			return
 		}
 
@@ -42,7 +43,7 @@ func GetRoles(connection *mongo.Database, permissions ...string) func(w http.Res
 
 			if err != nil {
 				log.Fatal(err)
-				helpers.JSONError(err, w, 500)
+				helpers.JSONError(err, w, constants.InternalServerError)
 				return
 			}
 
@@ -50,10 +51,11 @@ func GetRoles(connection *mongo.Database, permissions ...string) func(w http.Res
 		}
 
 		if err := cur.Err(); err != nil {
-			log.Fatal(err)
+			helpers.JSONError(err, w, constants.InternalServerError)
+			return
 		}
 
-		helpers.JSONResult(roles, 200, w)
+		helpers.JSONSuccess(roles, w, constants.Success)
 	}
 }
 
@@ -62,7 +64,7 @@ func CreateRole(connection *mongo.Database, permissions ...string) func(w http.R
 		auth, authErr := helpers.CheckPermissions(connection, r, permissions)
 
 		if !auth {
-			helpers.JSONError(fmt.Errorf(authErr.Error()), w, 400)
+			helpers.JSONError(fmt.Errorf(authErr.Error()), w, constants.Unauthorized)
 			return
 		}
 
@@ -72,7 +74,7 @@ func CreateRole(connection *mongo.Database, permissions ...string) func(w http.R
 		_ = json.NewDecoder(r.Body).Decode(&role)
 
 		if role.Name == "" {
-			helpers.JSONError(fmt.Errorf("Role name is required"), w, 400)
+			helpers.JSONError(fmt.Errorf("Role name is required"), w, constants.UnprocessableEntity)
 			return
 		}
 
@@ -81,23 +83,23 @@ func CreateRole(connection *mongo.Database, permissions ...string) func(w http.R
 		err := connection.Collection("roles").FindOne(context.TODO(), filter).Decode(&aux)
 
 		if err == nil {
-			helpers.JSONError(fmt.Errorf("Role name must be unique"), w, 400)
+			helpers.JSONError(fmt.Errorf("Role name must be unique"), w, constants.UnprocessableEntity)
 			return
 		}
 
 		if role.Permissions == nil {
-			helpers.JSONError(fmt.Errorf("Role permissions is required"), w, 400)
+			helpers.JSONError(fmt.Errorf("Role permissions is required"), w, constants.UnprocessableEntity)
 			return
 		}
 
 		result, err := connection.Collection("roles").InsertOne(context.TODO(), role)
 
 		if err != nil {
-			helpers.JSONError(err, w, 400)
+			helpers.JSONError(err, w, constants.BadRequest)
 			return
 		}
 
-		helpers.JSONResult(result, 200, w)
+		helpers.JSONSuccess(result, w, constants.Success)
 	}
 }
 
@@ -106,7 +108,7 @@ func GetRoleById(connection *mongo.Database, permissions ...string) func(w http.
 		auth, authErr := helpers.CheckPermissions(connection, r, permissions)
 
 		if !auth {
-			helpers.JSONError(fmt.Errorf(authErr.Error()), w, 400)
+			helpers.JSONError(fmt.Errorf(authErr.Error()), w, constants.Unauthorized)
 			return
 		}
 
@@ -121,11 +123,11 @@ func GetRoleById(connection *mongo.Database, permissions ...string) func(w http.
 		err := connection.Collection("roles").FindOne(context.TODO(), filter).Decode(&role)
 
 		if err != nil {
-			helpers.JSONError(fmt.Errorf("Role doesn't exist required"), w, 400)
+			helpers.JSONError(fmt.Errorf("Role doesn't exist"), w, constants.NotFound)
 			return
 		}
 
-		helpers.JSONResult(role, 200, w)
+		helpers.JSONSuccess(role, w, constants.Success)
 	}
 }
 
@@ -134,7 +136,7 @@ func UpdateRoleById(connection *mongo.Database, permissions ...string) func(w ht
 		auth, authErr := helpers.CheckPermissions(connection, r, permissions)
 
 		if !auth {
-			helpers.JSONError(fmt.Errorf(authErr.Error()), w, 400)
+			helpers.JSONError(fmt.Errorf(authErr.Error()), w, constants.Unauthorized)
 			return
 		}
 
@@ -154,7 +156,7 @@ func UpdateRoleById(connection *mongo.Database, permissions ...string) func(w ht
 		).Decode(&aux1)
 
 		if err != nil {
-			helpers.JSONError(fmt.Errorf("Requested Role doesn't exist"), w, 400)
+			helpers.JSONError(fmt.Errorf("Requested Role doesn't exist"), w, constants.NotFound)
 			return
 		}
 
@@ -164,7 +166,7 @@ func UpdateRoleById(connection *mongo.Database, permissions ...string) func(w ht
 		).Decode(&aux2)
 
 		if err == nil && aux1.ID != aux2.ID {
-			helpers.JSONError(fmt.Errorf("A Role with this name already exists"), w, 400)
+			helpers.JSONError(fmt.Errorf("A Role with this name already exists"), w, constants.UnprocessableEntity)
 			return
 		}
 
@@ -178,13 +180,13 @@ func UpdateRoleById(connection *mongo.Database, permissions ...string) func(w ht
 		_, err = connection.Collection("roles").UpdateOne(context.TODO(), bson.M{"_id": id}, update)
 
 		if err != nil {
-			helpers.JSONError(err, w, 400)
+			helpers.JSONError(err, w, constants.UnprocessableEntity)
 			return
 		}
 
 		role.ID = id
 
-		helpers.JSONResult(role, 200, w)
+		helpers.JSONSuccess(role, w, constants.Success)
 	}
 }
 
@@ -193,7 +195,7 @@ func DeleteRoleById(connection *mongo.Database, permissions ...string) func(w ht
 		auth, authErr := helpers.CheckPermissions(connection, r, permissions)
 
 		if !auth {
-			helpers.JSONError(fmt.Errorf(authErr.Error()), w, 400)
+			helpers.JSONError(fmt.Errorf(authErr.Error()), w, constants.Unauthorized)
 			return
 		}
 
@@ -204,15 +206,15 @@ func DeleteRoleById(connection *mongo.Database, permissions ...string) func(w ht
 		result, err := connection.Collection("roles").DeleteOne(context.TODO(), bson.M{"_id": id})
 
 		if err != nil {
-			helpers.JSONError(err, w, 400)
+			helpers.JSONError(err, w, constants.BadRequest)
 			return
 		}
 
 		if result.DeletedCount == 0 {
-			helpers.JSONError(fmt.Errorf("Requested Role doesn't exist"), w, 400)
+			helpers.JSONError(fmt.Errorf("Requested Role doesn't exist"), w, constants.NotFound)
 			return
 		}
 
-		helpers.JSONResult(nil, 200, w)
+		helpers.JSONSuccess(nil, w, constants.Success)
 	}
 }

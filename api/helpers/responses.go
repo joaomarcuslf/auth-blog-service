@@ -12,24 +12,25 @@ type Response struct {
 }
 
 func JSONError(err error, w http.ResponseWriter, status int) {
-	w.Header().Set("Content-Type", "application/json")
-
 	var response = Response{
-		Message: err.Error(),
 		Status:  status,
+		Message: err.Error(),
 	}
 
-	w.WriteHeader(response.Status)
-	json.NewEncoder(w).Encode(response)
+	JSONResponse(response, w, status)
 }
 
-func JSONResult(result interface{}, status int, w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
-
+func JSONSuccess(result interface{}, w http.ResponseWriter, status int) {
 	var response = Response{
 		Status: status,
 		Result: result,
 	}
 
+	JSONResponse(response, w, status)
+}
+
+func JSONResponse(response Response, w http.ResponseWriter, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.Status)
 	json.NewEncoder(w).Encode(response)
 }
