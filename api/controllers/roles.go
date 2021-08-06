@@ -92,14 +92,14 @@ func CreateRole(connection *mongo.Database, permissions ...string) func(w http.R
 			return
 		}
 
-		result, err := connection.Collection("roles").InsertOne(context.TODO(), role)
+		_, err = connection.Collection("roles").InsertOne(context.TODO(), role)
 
 		if err != nil {
 			helpers.JSONError(err, w, constants.BadRequest)
 			return
 		}
 
-		helpers.JSONSuccess(result, w, constants.Success)
+		helpers.JSONSuccess(role, w, constants.Success)
 	}
 }
 
