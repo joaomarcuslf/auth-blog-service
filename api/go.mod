@@ -1,4 +1,4 @@
-module my_library_app
+module auth_blog_service
 
 go 1.16
 

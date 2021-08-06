@@ -8,7 +8,8 @@ import (
 
 	"github.com/gorilla/mux"
 
-	db "my_library_app/db"
+	controllers "auth_blog_service/controllers"
+	db "auth_blog_service/db"
 )
 
 var connection = db.ConnectDB()
@@ -17,6 +18,8 @@ func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/health", HealthResponse).Methods("GET")
+	r.HandleFunc("/api/roles", controllers.GetRoles(connection)).Methods("GET")
+	r.HandleFunc("/api/roles", controllers.CreateRole(connection)).Methods("POST")
 
 	var port = os.Getenv("PORT")
 

@@ -2,10 +2,8 @@ package db
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -31,25 +29,7 @@ func ConnectDB() *mongo.Database {
 
 	fmt.Println("Connected to MongoDB!")
 
-	collection := client.Database("my_library_app")
+	collection := client.Database("auth_blog_service")
 
 	return collection
-}
-
-type ErrorResponse struct {
-	Status  int      `json:"status"`
-	Message string   `json:"message"`
-	Result  []string `json:"result"`
-}
-
-func JSONError(err error, w http.ResponseWriter, status int) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var response = ErrorResponse{
-		Message: err.Error(),
-		Status:  status,
-	}
-
-	w.WriteHeader(response.Status)
-	json.NewEncoder(w).Encode(response)
 }
