@@ -4,7 +4,7 @@
 
 ## How to Start Development
 
-1. Copy ```sample.env.dev``` to ```.env.dev``` and rename the variables if you need
+1. Copy ```sample.env``` to ```.env``` and rename the variables if you need
 2. Build the images and run the containers:
 
 ```sh
