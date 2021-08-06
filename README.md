@@ -1,6 +1,7 @@
 # auth-blog-service
 
 ![Actions Workflow](https://github.com/joaomarcuslf/auth-blog-service/workflows/go/badge.svg)
+![Actions Workflow](https://github.com/joaomarcuslf/auth-blog-service/workflows/CodeQL/badge.svg)
 
 ## How to Start Development
 
