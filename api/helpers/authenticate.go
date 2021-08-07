@@ -1,15 +1,11 @@
 package helpers
 
 import (
-	"context"
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"gopkg.in/mgo.v2/bson"
 
-	"auth_blog_service/models"
-
+	repositories "auth_blog_service/repositories"
 	types "auth_blog_service/types"
 )
 
@@ -35,13 +31,7 @@ func CheckPermissions(connection *mongo.Database, r *http.Request, permissions [
 
 	authorization = authorization[7:]
 
-	var role models.Role
-
-	id, _ := primitive.ObjectIDFromHex(authorization)
-
-	filter := bson.M{"_id": id}
-
-	connErr := connection.Collection("roles").FindOne(context.TODO(), filter).Decode(&role)
+	role, connErr, _ := repositories.GetRole(connection, authorization)
 
 	if connErr != nil {
 		err.Error = CreateError("Authentication Role doesn't exists")
