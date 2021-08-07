@@ -18,8 +18,6 @@ func Seed(connection *mongo.Database) {
 		return
 	}
 
-	fmt.Println("Starting to seed")
-
 	roles, _, _ := repositories.GetRoles(connection)
 
 	if len(roles) == 0 {

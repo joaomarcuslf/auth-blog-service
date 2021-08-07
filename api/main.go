@@ -38,6 +38,7 @@ func main() {
 	r := mux.NewRouter()
 
 	db.Seed(connection)
+	db.Migrate(connection)
 
 	r.HandleFunc("/health", logHandler(HealthResponse)).Methods("GET")
 
