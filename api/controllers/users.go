@@ -186,6 +186,65 @@ func GetUserRoleById(connection *mongo.Database, permissions ...string) func(w h
 	}
 }
 
+func GetUserPostsById(connection *mongo.Database, permissions ...string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		auth, authErr := helpers.CheckPermissions(connection, r, permissions)
+
+		if !auth {
+			helpers.JSONError(fmt.Errorf(authErr.Error()), w, constants.Unauthorized)
+			return
+		}
+
+		var user models.User
+
+		var params = mux.Vars(r)
+
+		id, _ := primitive.ObjectIDFromHex(params["id"])
+
+		filter := bson.M{"_id": id}
+
+		err := connection.Collection("users").FindOne(context.TODO(), filter).Decode(&user)
+
+		if err != nil {
+			helpers.JSONError(fmt.Errorf("User doesn't exist"), w, constants.NotFound)
+			return
+		}
+
+		filter = bson.M{"_userId": user.ID}
+
+		var posts []models.Post = []models.Post{}
+
+		cur, err := connection.Collection("posts").Find(context.TODO(), filter)
+
+		if err != nil {
+			helpers.JSONError(err, w, constants.BadRequest)
+			return
+		}
+
+		defer cur.Close(context.TODO())
+
+		for cur.Next(context.TODO()) {
+			var post models.Post
+			err := cur.Decode(&post)
+
+			if err != nil {
+				log.Fatal(err)
+				helpers.JSONError(err, w, constants.InternalServerError)
+				return
+			}
+
+			posts = append(posts, post)
+		}
+
+		if err := cur.Err(); err != nil {
+			helpers.JSONError(err, w, constants.InternalServerError)
+			return
+		}
+
+		helpers.JSONSuccess(posts, w, constants.Success)
+	}
+}
+
 func UpdateUserById(connection *mongo.Database, permissions ...string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		auth, authErr := helpers.CheckPermissions(connection, r, permissions)

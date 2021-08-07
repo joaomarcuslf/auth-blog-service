@@ -6,7 +6,9 @@
   "license": "MIT",
   "scripts": {
     "prepare": "husky install",
-    "pre-commit": "lint-staged"
+    "pre-commit": "lint-staged",
+    "start": "docker-compose up -d",
+    "log:api": "docker-compose logs -f api"
   },
   "keywords": [],
   "description": "",
