@@ -15,10 +15,10 @@ import (
 	"auth_blog_service/models"
 )
 
-func GetPosts(connection *mongo.Database) ([]models.Post, error, int) {
+func QueryPosts(connection *mongo.Database, filter bson.M) ([]models.Post, error, int) {
 	var posts []models.Post = []models.Post{}
 
-	cur, err := connection.Collection("posts").Find(context.TODO(), bson.M{})
+	cur, err := connection.Collection("posts").Find(context.TODO(), filter)
 
 	if err != nil {
 		return posts, err, constants.InternalServerError
@@ -42,6 +42,10 @@ func GetPosts(connection *mongo.Database) ([]models.Post, error, int) {
 	}
 
 	return posts, err, constants.Success
+}
+
+func GetPosts(connection *mongo.Database) ([]models.Post, error, int) {
+	return QueryPosts(connection, bson.M{})
 }
 
 func CreatePost(connection *mongo.Database, body io.Reader) (models.Post, error, int) {
