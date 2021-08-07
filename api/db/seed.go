@@ -1,4 +1,4 @@
-package main
+package db
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 	types "auth_blog_service/types"
 )
 
-func seed(connection *mongo.Database) {
+func Seed(connection *mongo.Database) {
 	if os.Getenv("ENV") == "PRODUCTION" {
 		return
 	}
