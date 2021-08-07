@@ -48,7 +48,7 @@ func main() {
 	r.HandleFunc("/api/users", logHandler(controllers.CreateUser(connection, "user.create"))).Methods("POST")
 	r.HandleFunc("/api/users/{id}", logHandler(controllers.GetUserById(connection))).Methods("GET")
 	r.HandleFunc("/api/users/{id}/role", logHandler(controllers.GetUserRoleById(connection))).Methods("GET")
-	// r.HandleFunc("/api/users/{id}/posts", logHandler(controllers.GetUserPostsById(connection))).Methods("GET")
+	r.HandleFunc("/api/users/{id}/posts", logHandler(controllers.GetUserPostsById(connection))).Methods("GET")
 	r.HandleFunc("/api/users/{id}", logHandler(controllers.UpdateUserById(connection, "user.update"))).Methods("PUT")
 	r.HandleFunc("/api/users/{id}", logHandler(controllers.DeleteUserById(connection, "user.delete"))).Methods("DELETE")
 
