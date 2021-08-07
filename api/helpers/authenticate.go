@@ -9,11 +9,9 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"auth_blog_service/models"
-)
 
-type ErrorResponse struct {
-	Error func() string
-}
+	types "auth_blog_service/types"
+)
 
 func CreateError(message string) func() string {
 	return func() string {
@@ -21,8 +19,8 @@ func CreateError(message string) func() string {
 	}
 }
 
-func CheckPermissions(connection *mongo.Database, r *http.Request, permissions []string) (bool, ErrorResponse) {
-	err := ErrorResponse{}
+func CheckPermissions(connection *mongo.Database, r *http.Request, permissions []string) (bool, types.ErrorResponse) {
+	err := types.ErrorResponse{}
 
 	if len(permissions) == 0 {
 		return true, err
