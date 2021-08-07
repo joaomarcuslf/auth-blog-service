@@ -11,7 +11,8 @@
 ```sh
 $ yarn install
 $ cp sample.env .env
-$ docker-compose up --build
+$ docker-compose up --build -d
+$ yarn log:api
 ```
 
 - API: [http://localhost:5000](http://localhost:5000)
