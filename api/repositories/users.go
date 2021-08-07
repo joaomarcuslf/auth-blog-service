@@ -44,14 +44,21 @@ func QueryUsers(connection *mongo.Database, filter bson.M) ([]models.User, error
 	return users, err, constants.Success
 }
 
+func InsertUser(connection *mongo.Database, user models.User) error {
+	_, err := connection.Collection("users").InsertOne(context.TODO(), user)
+
+	return err
+}
+
 func GetUsers(connection *mongo.Database) ([]models.User, error, int) {
 	return QueryUsers(connection, bson.M{})
 }
 
 func CreateUser(connection *mongo.Database, body io.Reader) (models.User, error, int) {
 	var user models.User
-	var aux models.User
-	var role models.Role
+
+	fmt.Println(body)
+	return user, nil, constants.UnprocessableEntity
 
 	_ = json.NewDecoder(body).Decode(&user)
 
@@ -59,10 +66,7 @@ func CreateUser(connection *mongo.Database, body io.Reader) (models.User, error,
 		return user, fmt.Errorf("Valid User Birthdate is required"), constants.UnprocessableEntity
 	}
 
-	err := connection.Collection("roles").FindOne(
-		context.TODO(),
-		bson.M{"_id": user.RoleID},
-	).Decode(&role)
+	_, err, _ := QueryRoles(connection, bson.M{"_id": user.RoleID})
 
 	if err != nil {
 		return user, fmt.Errorf("User Role doesn't exists, or is empty"), constants.NotFound
@@ -76,13 +80,13 @@ func CreateUser(connection *mongo.Database, body io.Reader) (models.User, error,
 		return user, fmt.Errorf("User username is required"), constants.UnprocessableEntity
 	}
 
-	err = connection.Collection("users").FindOne(context.TODO(), bson.M{"username": user.UserName}).Decode(&aux)
+	_, err, _ = QueryUsers(connection, bson.M{"username": user.UserName})
 
 	if err == nil {
 		return user, fmt.Errorf("User username must be unique"), constants.UnprocessableEntity
 	}
 
-	_, err = connection.Collection("users").InsertOne(context.TODO(), user)
+	err = InsertUser(connection, user)
 
 	if err != nil {
 		return user, err, constants.BadRequest
@@ -112,7 +116,7 @@ func GetUserRole(connection *mongo.Database, idParam string) (models.Role, error
 		return models.Role{}, err, status
 	}
 
-	role, err, status := QueryRoles(connection, bson.M{"_id": user.RoleID})
+	role, err, _ := QueryRoles(connection, bson.M{"_id": user.RoleID})
 
 	if err != nil {
 		return models.Role{}, err, constants.InternalServerError
@@ -128,7 +132,7 @@ func GetUserPosts(connection *mongo.Database, idParam string) ([]models.Post, er
 		return []models.Post{}, err, status
 	}
 
-	posts, err, status := QueryPosts(connection, bson.M{"_userId": user.ID})
+	posts, err, _ := QueryPosts(connection, bson.M{"_userId": user.ID})
 
 	if err != nil {
 		return posts, err, constants.InternalServerError
@@ -139,34 +143,25 @@ func GetUserPosts(connection *mongo.Database, idParam string) ([]models.Post, er
 
 func UpdateUser(connection *mongo.Database, idParam string, body io.Reader) (models.User, error, int) {
 	var user models.User
-	var aux1 models.User
-	var aux2 models.User
-	var role models.Role
 
 	id, _ := primitive.ObjectIDFromHex(idParam)
 
 	_ = json.NewDecoder(body).Decode(&user)
 
-	err := connection.Collection("users").FindOne(
-		context.TODO(),
-		bson.M{"_id": id},
-	).Decode(&aux1)
+	aux1, err, _ := QueryUsers(connection, bson.M{"_id": id})
 
 	if err != nil {
 		return user, fmt.Errorf("Requested User doesn't exist"), constants.NotFound
 	}
 
-	err = connection.Collection("users").FindOne(
-		context.TODO(),
-		bson.M{"username": user.UserName},
-	).Decode(&aux2)
+	aux2, err, _ := QueryUsers(connection, bson.M{"username": user.UserName})
 
-	if err == nil && aux1.ID != aux2.ID {
+	if err == nil && aux1[0].ID != aux2[0].ID {
 		return user, fmt.Errorf("A User with this username already exists"), constants.UnprocessableEntity
 	}
 
 	if user.RoleID.Hex() != "000000000000000000000000" {
-		err = connection.Collection("roles").FindOne(context.TODO(), bson.M{"_id": user.RoleID}).Decode(&role)
+		_, err, _ = QueryRoles(connection, bson.M{"_id": user.RoleID})
 
 		if err != nil {
 			return user, fmt.Errorf("Valid User Role is required"), constants.UnprocessableEntity
