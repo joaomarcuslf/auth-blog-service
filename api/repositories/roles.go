@@ -43,13 +43,18 @@ func QueryRoles(connection *mongo.Database, filter bson.M) ([]models.Role, error
 	return roles, err, constants.Success
 }
 
+func InsertRole(connection *mongo.Database, role models.Role) error {
+	_, err := connection.Collection("roles").InsertOne(context.TODO(), role)
+
+	return err
+}
+
 func GetRoles(connection *mongo.Database) ([]models.Role, error, int) {
 	return QueryRoles(connection, bson.M{})
 }
 
 func CreateRole(connection *mongo.Database, body io.Reader) (models.Role, error, int) {
 	var role models.Role
-	var aux models.Role
 
 	_ = json.NewDecoder(body).Decode(&role)
 
@@ -57,7 +62,7 @@ func CreateRole(connection *mongo.Database, body io.Reader) (models.Role, error,
 		return role, fmt.Errorf("Role name is required"), constants.UnprocessableEntity
 	}
 
-	err := connection.Collection("roles").FindOne(context.TODO(), bson.M{"name": role.Name}).Decode(&aux)
+	_, err, _ := QueryRoles(connection, bson.M{"name": role.Name})
 
 	if err == nil {
 		return role, fmt.Errorf("Role name must be unique"), constants.UnprocessableEntity
@@ -67,7 +72,7 @@ func CreateRole(connection *mongo.Database, body io.Reader) (models.Role, error,
 		return role, fmt.Errorf("Role permissions is required"), constants.UnprocessableEntity
 	}
 
-	_, err = connection.Collection("roles").InsertOne(context.TODO(), role)
+	err = InsertRole(connection, role)
 
 	if err != nil {
 		return role, err, constants.BadRequest
@@ -92,28 +97,20 @@ func GetRole(connection *mongo.Database, idParam string) (models.Role, error, in
 
 func UpdateRole(connection *mongo.Database, idParam string, body io.Reader) (models.Role, error, int) {
 	var role models.Role
-	var aux1 models.Role
-	var aux2 models.Role
 
 	id, _ := primitive.ObjectIDFromHex(idParam)
 
 	_ = json.NewDecoder(body).Decode(&role)
 
-	err := connection.Collection("roles").FindOne(
-		context.TODO(),
-		bson.M{"_id": id},
-	).Decode(&aux1)
+	aux1, err, _ := QueryRoles(connection, bson.M{"_id": id})
 
 	if err != nil {
 		return role, fmt.Errorf("Requested Role doesn't exist"), constants.NotFound
 	}
 
-	err = connection.Collection("roles").FindOne(
-		context.TODO(),
-		bson.M{"name": role.Name},
-	).Decode(&aux2)
+	aux2, err, _ := QueryRoles(connection, bson.M{"name": role.Name})
 
-	if err == nil && aux1.ID != aux2.ID {
+	if err == nil && aux1[0].ID != aux2[0].ID {
 		return role, fmt.Errorf("A Role with this name already exists"), constants.UnprocessableEntity
 	}
 

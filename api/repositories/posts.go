@@ -44,22 +44,24 @@ func QueryPosts(connection *mongo.Database, filter bson.M) ([]models.Post, error
 	return posts, err, constants.Success
 }
 
+func InsertPost(connection *mongo.Database, post models.Post) error {
+	_, err := connection.Collection("posts").InsertOne(context.TODO(), post)
+
+	return err
+}
+
 func GetPosts(connection *mongo.Database) ([]models.Post, error, int) {
 	return QueryPosts(connection, bson.M{})
 }
 
 func CreatePost(connection *mongo.Database, body io.Reader) (models.Post, error, int) {
 	var post models.Post
-	var role models.Role
 
 	_ = json.NewDecoder(body).Decode(&post)
 
 	post.CreatedDate.Time = time.Now()
 
-	err := connection.Collection("users").FindOne(
-		context.TODO(),
-		bson.M{"_id": post.UserID},
-	).Decode(&role)
+	_, err, _ := GetUser(connection, post.UserID.String())
 
 	if err != nil {
 		return post, fmt.Errorf("Post User doesn't exists, or is empty"), constants.NotFound
@@ -73,7 +75,7 @@ func CreatePost(connection *mongo.Database, body io.Reader) (models.Post, error,
 		return post, fmt.Errorf("Post title is required"), constants.UnprocessableEntity
 	}
 
-	_, err = connection.Collection("posts").InsertOne(context.TODO(), post)
+	err = InsertPost(connection, post)
 
 	if err != nil {
 		return post, err, constants.BadRequest
@@ -98,25 +100,18 @@ func GetPost(connection *mongo.Database, idParam string) (models.Post, error, in
 
 func UpdatePost(connection *mongo.Database, idParam string, body io.Reader) (models.Post, error, int) {
 	var post models.Post
-	var aux1 models.Post
-
-	var user models.User
-
 	id, _ := primitive.ObjectIDFromHex(idParam)
 
 	_ = json.NewDecoder(body).Decode(&post)
 
-	err := connection.Collection("posts").FindOne(
-		context.TODO(),
-		bson.M{"_id": id},
-	).Decode(&aux1)
+	aux1, err, _ := GetPost(connection, idParam)
 
 	if err != nil {
 		return post, fmt.Errorf("Requested Post doesn't exist"), constants.NotFound
 	}
 
 	if post.UserID.Hex() != "000000000000000000000000" {
-		err = connection.Collection("users").FindOne(context.TODO(), bson.M{"_id": post.UserID}).Decode(&user)
+		_, err, _ := GetUser(connection, post.UserID.String())
 
 		if err != nil {
 			return post, fmt.Errorf("Valid Post User is required"), constants.UnprocessableEntity
