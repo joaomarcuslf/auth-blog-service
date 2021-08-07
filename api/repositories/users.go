@@ -122,7 +122,7 @@ func GetUserRole(connection *mongo.Database, idParam string) (models.Role, error
 		return models.Role{}, err, constants.InternalServerError
 	}
 
-	return role[0], err, constants.InternalServerError
+	return role[0], err, constants.Success
 }
 
 func GetUserPosts(connection *mongo.Database, idParam string) ([]models.Post, error, int) {
@@ -138,7 +138,7 @@ func GetUserPosts(connection *mongo.Database, idParam string) ([]models.Post, er
 		return posts, err, constants.InternalServerError
 	}
 
-	return posts, err, constants.InternalServerError
+	return posts, err, constants.Success
 }
 
 func UpdateUser(connection *mongo.Database, idParam string, body io.Reader) (models.User, error, int) {

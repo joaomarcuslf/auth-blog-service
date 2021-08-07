@@ -37,6 +37,8 @@ func logHandler(fn http.HandlerFunc) http.HandlerFunc {
 func main() {
 	r := mux.NewRouter()
 
+	seed(connection)
+
 	r.HandleFunc("/health", logHandler(HealthResponse)).Methods("GET")
 
 	r.HandleFunc("/api/roles", logHandler(controllers.GetRoles(connection))).Methods("GET")
