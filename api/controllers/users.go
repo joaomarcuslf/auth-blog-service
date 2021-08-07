@@ -210,7 +210,7 @@ func GetUserPostsById(connection *mongo.Database, permissions ...string) func(w 
 			return
 		}
 
-		filter = bson.M{"_userid": user.ID}
+		filter = bson.M{"_userId": user.ID}
 
 		var posts []models.Post = []models.Post{}
 

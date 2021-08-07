@@ -26,8 +26,9 @@ func logHandler(fn http.HandlerFunc) http.HandlerFunc {
 		}
 
 		requestInfo := strings.Split(string(x), "\n")
+		requestInfo = strings.Split(requestInfo[0], " ")
 
-		fmt.Println(requestInfo[0])
+		fmt.Println(requestInfo[0], requestInfo[1])
 
 		fn(w, r)
 	}
@@ -51,6 +52,12 @@ func main() {
 	r.HandleFunc("/api/users/{id}/posts", logHandler(controllers.GetUserPostsById(connection))).Methods("GET")
 	r.HandleFunc("/api/users/{id}", logHandler(controllers.UpdateUserById(connection, "user.update"))).Methods("PUT")
 	r.HandleFunc("/api/users/{id}", logHandler(controllers.DeleteUserById(connection, "user.delete"))).Methods("DELETE")
+
+	r.HandleFunc("/api/posts", logHandler(controllers.GetPosts(connection))).Methods("GET")
+	r.HandleFunc("/api/posts", logHandler(controllers.CreatePost(connection, "post.create"))).Methods("POST")
+	r.HandleFunc("/api/posts/{id}", logHandler(controllers.GetPostById(connection))).Methods("GET")
+	r.HandleFunc("/api/posts/{id}", logHandler(controllers.UpdatePostById(connection, "post.update"))).Methods("PUT")
+	r.HandleFunc("/api/posts/{id}", logHandler(controllers.DeletePostById(connection, "post.delete"))).Methods("DELETE")
 
 	var port = os.Getenv("PORT")
 
