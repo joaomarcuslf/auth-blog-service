@@ -87,9 +87,7 @@ func GetPost(connection *mongo.Database, idParam string) (models.Post, error, in
 
 	id, _ := primitive.ObjectIDFromHex(idParam)
 
-	filter := bson.M{"_id": id}
-
-	err := connection.Collection("posts").FindOne(context.TODO(), filter).Decode(&post)
+	err := connection.Collection("posts").FindOne(context.TODO(), bson.M{"_id": id}).Decode(&post)
 
 	if err != nil {
 		return post, fmt.Errorf("Post doesn't exist"), constants.NotFound
