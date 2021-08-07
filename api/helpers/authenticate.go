@@ -38,11 +38,11 @@ func CheckPermissions(connection *mongo.Database, r *http.Request, permissions [
 		return false, err
 	}
 
-	if len(permissions) == 1 && contains(role.Permissions, permissions[0]) {
+	if len(permissions) == 1 && Contains(role.Permissions, permissions[0]) {
 		return true, err
 	}
 
-	if containsSubSLice(permissions, role.Permissions) {
+	if ContainsSubSLice(permissions, role.Permissions) {
 		return true, err
 	}
 
