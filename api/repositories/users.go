@@ -45,12 +45,10 @@ func QueryUsers(connection *mongo.Database, filter bson.M) ([]models.User, error
 	return users, err, constants.Success
 }
 
-func QueryUser(connection *mongo.Database, idParam string) (models.User, error, int) {
+func QueryUser(connection *mongo.Database, filter bson.M) (models.User, error, int) {
 	var user models.User
 
-	id, _ := primitive.ObjectIDFromHex(idParam)
-
-	err := connection.Collection("users").FindOne(context.TODO(), bson.M{"_id": id}).Decode(&user)
+	err := connection.Collection("users").FindOne(context.TODO(), filter).Decode(&user)
 
 	if err != nil {
 		return models.User{}, fmt.Errorf("User doesn't exist"), constants.NotFound
@@ -116,7 +114,9 @@ func CreateUser(connection *mongo.Database, body io.Reader) (serializers.User, e
 }
 
 func GetUser(connection *mongo.Database, idParam string) (serializers.User, error, int) {
-	user, err, status := QueryUser(connection, idParam)
+	id, _ := primitive.ObjectIDFromHex(idParam)
+
+	user, err, status := QueryUser(connection, bson.M{"_id": id})
 
 	if err != nil {
 		return serializers.User{}, err, status
@@ -126,7 +126,9 @@ func GetUser(connection *mongo.Database, idParam string) (serializers.User, erro
 }
 
 func GetUserRole(connection *mongo.Database, idParam string) (serializers.Role, error, int) {
-	user, err, status := QueryUser(connection, idParam)
+	id, _ := primitive.ObjectIDFromHex(idParam)
+
+	user, err, status := QueryUser(connection, bson.M{"_id": id})
 
 	if err != nil {
 		return serializers.Role{}, err, status
@@ -142,7 +144,9 @@ func GetUserRole(connection *mongo.Database, idParam string) (serializers.Role, 
 }
 
 func GetUserPosts(connection *mongo.Database, idParam string) ([]serializers.Post, error, int) {
-	user, err, status := QueryUser(connection, idParam)
+	id, _ := primitive.ObjectIDFromHex(idParam)
+
+	user, err, status := QueryUser(connection, bson.M{"_id": id})
 
 	if err != nil {
 		return []serializers.Post{}, err, status
@@ -216,7 +220,7 @@ func UpdateUser(connection *mongo.Database, idParam string, body io.Reader) (ser
 		return serializers.User{}, err, constants.UnprocessableEntity
 	}
 
-	user, err, status := QueryUser(connection, idParam)
+	user, err, status := QueryUser(connection, bson.M{"_id": id})
 
 	if err != nil {
 		return serializers.User{}, err, status
