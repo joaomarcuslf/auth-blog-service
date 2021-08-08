@@ -12,6 +12,7 @@ import (
 
 	constants "auth_blog_service/constants"
 	"auth_blog_service/models"
+	serializers "auth_blog_service/serializers"
 )
 
 func QueryRoles(connection *mongo.Database, filter bson.M) ([]models.Role, error, int) {
@@ -20,7 +21,7 @@ func QueryRoles(connection *mongo.Database, filter bson.M) ([]models.Role, error
 	cur, err := connection.Collection("roles").Find(context.TODO(), filter)
 
 	if err != nil {
-		return roles, err, constants.InternalServerError
+		return []models.Role{}, err, constants.InternalServerError
 	}
 
 	defer cur.Close(context.TODO())
@@ -30,17 +31,31 @@ func QueryRoles(connection *mongo.Database, filter bson.M) ([]models.Role, error
 		err := cur.Decode(&role)
 
 		if err != nil {
-			return roles, err, constants.InternalServerError
+			return []models.Role{}, err, constants.InternalServerError
 		}
 
 		roles = append(roles, role)
 	}
 
 	if err := cur.Err(); err != nil {
-		return roles, err, constants.InternalServerError
+		return []models.Role{}, err, constants.InternalServerError
 	}
 
 	return roles, err, constants.Success
+}
+
+func QueryRole(connection *mongo.Database, idParam string) (models.Role, error, int) {
+	var role models.Role
+
+	id, _ := primitive.ObjectIDFromHex(idParam)
+
+	err := connection.Collection("roles").FindOne(context.TODO(), bson.M{"_id": id}).Decode(&role)
+
+	if err != nil {
+		return models.Role{}, fmt.Errorf("Role doesn't exist"), constants.NotFound
+	}
+
+	return role, err, constants.Success
 }
 
 func InsertRole(connection *mongo.Database, role models.Role) error {
@@ -49,53 +64,57 @@ func InsertRole(connection *mongo.Database, role models.Role) error {
 	return err
 }
 
-func GetRoles(connection *mongo.Database) ([]models.Role, error, int) {
-	return QueryRoles(connection, bson.M{})
+func GetRoles(connection *mongo.Database) ([]serializers.Role, error, int) {
+	roles, err, status := QueryRoles(connection, bson.M{})
+
+	if err != nil {
+		return []serializers.Role{}, err, status
+	}
+
+	return serializers.SerializeManyRoles(roles), err, status
 }
 
-func CreateRole(connection *mongo.Database, body io.Reader) (models.Role, error, int) {
+func CreateRole(connection *mongo.Database, body io.Reader) (serializers.Role, error, int) {
 	var role models.Role
 
 	_ = json.NewDecoder(body).Decode(&role)
 
 	if role.Name == "" {
-		return role, fmt.Errorf("Role name is required"), constants.UnprocessableEntity
+		return serializers.Role{}, fmt.Errorf("Role name is required"), constants.UnprocessableEntity
 	}
 
-	_, err, _ := QueryRoles(connection, bson.M{"name": role.Name})
+	roles, _, _ := QueryRoles(connection, bson.M{"name": role.Name})
 
-	if err == nil {
-		return role, fmt.Errorf("Role name must be unique"), constants.UnprocessableEntity
+	if len(roles) > 0 {
+		return serializers.Role{}, fmt.Errorf("Role name must be unique"), constants.UnprocessableEntity
 	}
 
 	if role.Permissions == nil {
-		return role, fmt.Errorf("Role permissions is required"), constants.UnprocessableEntity
+		return serializers.Role{}, fmt.Errorf("Role permissions is required"), constants.UnprocessableEntity
 	}
 
-	err = InsertRole(connection, role)
+	err := InsertRole(connection, role)
 
 	if err != nil {
-		return role, err, constants.BadRequest
+		return serializers.Role{}, err, constants.BadRequest
 	}
 
-	return role, err, constants.Success
+	roles, _, _ = QueryRoles(connection, bson.M{"name": role.Name})
+
+	return serializers.SerializeOneRole(roles[0]), err, constants.Success
 }
 
-func GetRole(connection *mongo.Database, idParam string) (models.Role, error, int) {
-	var role models.Role
-
-	id, _ := primitive.ObjectIDFromHex(idParam)
-
-	err := connection.Collection("roles").FindOne(context.TODO(), bson.M{"_id": id}).Decode(&role)
+func GetRole(connection *mongo.Database, idParam string) (serializers.Role, error, int) {
+	role, err, status := QueryRole(connection, idParam)
 
 	if err != nil {
-		return role, fmt.Errorf("Role doesn't exist"), constants.NotFound
+		return serializers.Role{}, err, status
 	}
 
-	return role, err, constants.Success
+	return serializers.SerializeOneRole(role), err, status
 }
 
-func UpdateRole(connection *mongo.Database, idParam string, body io.Reader) (models.Role, error, int) {
+func UpdateRole(connection *mongo.Database, idParam string, body io.Reader) (serializers.Role, error, int) {
 	var role models.Role
 
 	id, _ := primitive.ObjectIDFromHex(idParam)
@@ -105,43 +124,56 @@ func UpdateRole(connection *mongo.Database, idParam string, body io.Reader) (mod
 	aux1, err, _ := QueryRoles(connection, bson.M{"_id": id})
 
 	if err != nil {
-		return role, fmt.Errorf("Requested Role doesn't exist"), constants.NotFound
+		return serializers.Role{}, fmt.Errorf("Requested Role doesn't exist"), constants.NotFound
 	}
 
 	aux2, err, _ := QueryRoles(connection, bson.M{"name": role.Name})
 
-	if err == nil && aux1[0].ID != aux2[0].ID {
-		return role, fmt.Errorf("A Role with this name already exists"), constants.UnprocessableEntity
+	if err == nil && len(aux2) > 0 && aux1[0].ID != aux2[0].ID {
+		return serializers.Role{}, fmt.Errorf("A Role with this name already exists"), constants.UnprocessableEntity
+	}
+
+	setObj := bson.M{}
+
+	if role.Name != "" {
+		setObj["name"] = role.Name
+	}
+
+	if role.Permissions != nil {
+		setObj["permissions"] = role.Permissions
 	}
 
 	update := bson.M{
-		"$set": bson.M{
-			"name":        role.Name,
-			"permissions": role.Permissions,
-		},
+		"$set": setObj,
 	}
 
 	_, err = connection.Collection("roles").UpdateOne(context.TODO(), bson.M{"_id": id}, update)
 
 	if err != nil {
-		return role, err, constants.UnprocessableEntity
+		return serializers.Role{}, err, constants.UnprocessableEntity
 	}
 
-	return GetRole(connection, idParam)
+	role, err, status := QueryRole(connection, idParam)
+
+	if err != nil {
+		return serializers.Role{}, err, status
+	}
+
+	return serializers.SerializeOneRole(role), err, status
 }
 
-func DeleteRole(connection *mongo.Database, idParam string) (models.Role, error, int) {
+func DeleteRole(connection *mongo.Database, idParam string) (serializers.Role, error, int) {
 	id, _ := primitive.ObjectIDFromHex(idParam)
 
 	result, err := connection.Collection("roles").DeleteOne(context.TODO(), bson.M{"_id": id})
 
 	if err != nil {
-		return models.Role{}, err, constants.BadRequest
+		return serializers.Role{}, err, constants.BadRequest
 	}
 
 	if result.DeletedCount == 0 {
-		return models.Role{}, fmt.Errorf("Requested Role doesn't exist"), constants.NotFound
+		return serializers.Role{}, fmt.Errorf("Requested Role doesn't exist"), constants.NotFound
 	}
 
-	return models.Role{}, err, constants.Success
+	return serializers.Role{}, err, constants.Success
 }
