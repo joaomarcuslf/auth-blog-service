@@ -45,12 +45,10 @@ func QueryPosts(connection *mongo.Database, filter bson.M) ([]models.Post, error
 	return posts, err, constants.Success
 }
 
-func QueryPost(connection *mongo.Database, idParam string) (models.Post, error, int) {
+func QueryPost(connection *mongo.Database, filter bson.M) (models.Post, error, int) {
 	var post models.Post
 
-	id, _ := primitive.ObjectIDFromHex(idParam)
-
-	err := connection.Collection("posts").FindOne(context.TODO(), bson.M{"_id": id}).Decode(&post)
+	err := connection.Collection("posts").FindOne(context.TODO(), filter).Decode(&post)
 
 	if err != nil {
 		return models.Post{}, fmt.Errorf("Post doesn't exist"), constants.NotFound
@@ -108,7 +106,9 @@ func CreatePost(connection *mongo.Database, body io.Reader) (serializers.Post, e
 }
 
 func GetPost(connection *mongo.Database, idParam string) (serializers.Post, error, int) {
-	post, err, status := QueryPost(connection, idParam)
+	id, _ := primitive.ObjectIDFromHex(idParam)
+
+	post, err, status := QueryPost(connection, bson.M{"_id": id})
 
 	if err != nil {
 		return serializers.Post{}, err, status
@@ -124,7 +124,7 @@ func UpdatePost(connection *mongo.Database, idParam string, body io.Reader) (ser
 
 	_ = json.NewDecoder(body).Decode(&post)
 
-	_, err, _ := QueryPost(connection, idParam)
+	_, err, _ := QueryPost(connection, bson.M{"_id": id})
 
 	if err != nil {
 		return serializers.Post{}, fmt.Errorf("Requested Post doesn't exist"), constants.NotFound
@@ -162,7 +162,7 @@ func UpdatePost(connection *mongo.Database, idParam string, body io.Reader) (ser
 		return serializers.Post{}, err, constants.UnprocessableEntity
 	}
 
-	post, err, status := QueryPost(connection, idParam)
+	post, err, status := QueryPost(connection, bson.M{"_id": id})
 
 	if err != nil {
 		return serializers.Post{}, err, status

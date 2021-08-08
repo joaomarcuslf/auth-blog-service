@@ -44,12 +44,10 @@ func QueryRoles(connection *mongo.Database, filter bson.M) ([]models.Role, error
 	return roles, err, constants.Success
 }
 
-func QueryRole(connection *mongo.Database, idParam string) (models.Role, error, int) {
+func QueryRole(connection *mongo.Database, filter bson.M) (models.Role, error, int) {
 	var role models.Role
 
-	id, _ := primitive.ObjectIDFromHex(idParam)
-
-	err := connection.Collection("roles").FindOne(context.TODO(), bson.M{"_id": id}).Decode(&role)
+	err := connection.Collection("roles").FindOne(context.TODO(), filter).Decode(&role)
 
 	if err != nil {
 		return models.Role{}, fmt.Errorf("Role doesn't exist"), constants.NotFound
@@ -105,7 +103,9 @@ func CreateRole(connection *mongo.Database, body io.Reader) (serializers.Role, e
 }
 
 func GetRole(connection *mongo.Database, idParam string) (serializers.Role, error, int) {
-	role, err, status := QueryRole(connection, idParam)
+	id, _ := primitive.ObjectIDFromHex(idParam)
+
+	role, err, status := QueryRole(connection, bson.M{"_id": id})
 
 	if err != nil {
 		return serializers.Role{}, err, status
@@ -153,7 +153,7 @@ func UpdateRole(connection *mongo.Database, idParam string, body io.Reader) (ser
 		return serializers.Role{}, err, constants.UnprocessableEntity
 	}
 
-	role, err, status := QueryRole(connection, idParam)
+	role, err, status := QueryRole(connection, bson.M{"_id": id})
 
 	if err != nil {
 		return serializers.Role{}, err, status
