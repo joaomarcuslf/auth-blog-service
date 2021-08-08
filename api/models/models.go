@@ -34,3 +34,10 @@ type Migration struct {
 	Name string             `json:"name" bson:"name"`
 	Date types.Datetime     `json:"date" bson:"date"`
 }
+
+type Session struct {
+	ID          primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+	Token       string             `json:"token" bson:"token"`
+	CreatedDate types.Datetime     `json:"createdDate" bson:"createdDate"`
+	Active      bool               `json:"active" bson:"active"`
+}

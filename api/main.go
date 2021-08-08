@@ -62,6 +62,9 @@ func main() {
 	r.HandleFunc("/api/posts/{id}", logHandler(controllers.UpdatePostById(connection, "post.update"))).Methods("PUT")
 	r.HandleFunc("/api/posts/{id}", logHandler(controllers.DeletePostById(connection, "post.delete"))).Methods("DELETE")
 
+	r.HandleFunc("/api/login", logHandler(controllers.Login(connection))).Methods("POST")
+	r.HandleFunc("/api/logout", logHandler(controllers.Logout(connection))).Methods("POST")
+
 	var port = os.Getenv("PORT")
 
 	fmt.Println("Server ready at http://localhost:" + port + "/")
