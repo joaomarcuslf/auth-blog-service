@@ -13,6 +13,7 @@ import (
 
 	constants "auth_blog_service/constants"
 	"auth_blog_service/models"
+	serializers "auth_blog_service/serializers"
 )
 
 func QueryUsers(connection *mongo.Database, filter bson.M) ([]models.User, error, int) {
@@ -21,7 +22,7 @@ func QueryUsers(connection *mongo.Database, filter bson.M) ([]models.User, error
 	cur, err := connection.Collection("users").Find(context.TODO(), filter)
 
 	if err != nil {
-		return users, err, constants.InternalServerError
+		return []models.User{}, err, constants.InternalServerError
 	}
 
 	defer cur.Close(context.TODO())
@@ -31,17 +32,31 @@ func QueryUsers(connection *mongo.Database, filter bson.M) ([]models.User, error
 		err := cur.Decode(&user)
 
 		if err != nil {
-			return users, err, constants.InternalServerError
+			return []models.User{}, err, constants.InternalServerError
 		}
 
 		users = append(users, user)
 	}
 
 	if err := cur.Err(); err != nil {
-		return users, err, constants.InternalServerError
+		return []models.User{}, err, constants.InternalServerError
 	}
 
 	return users, err, constants.Success
+}
+
+func QueryUser(connection *mongo.Database, idParam string) (models.User, error, int) {
+	var user models.User
+
+	id, _ := primitive.ObjectIDFromHex(idParam)
+
+	err := connection.Collection("users").FindOne(context.TODO(), bson.M{"_id": id}).Decode(&user)
+
+	if err != nil {
+		return models.User{}, fmt.Errorf("User doesn't exist"), constants.NotFound
+	}
+
+	return user, err, constants.Success
 }
 
 func InsertUser(connection *mongo.Database, user models.User) error {
@@ -50,98 +65,99 @@ func InsertUser(connection *mongo.Database, user models.User) error {
 	return err
 }
 
-func GetUsers(connection *mongo.Database) ([]models.User, error, int) {
-	return QueryUsers(connection, bson.M{})
+func GetUsers(connection *mongo.Database) ([]serializers.User, error, int) {
+	users, err, status := QueryUsers(connection, bson.M{})
+
+	if err != nil {
+		return []serializers.User{}, err, status
+	}
+
+	return serializers.SerializeManyUsers(users), err, status
 }
 
-func CreateUser(connection *mongo.Database, body io.Reader) (models.User, error, int) {
+func CreateUser(connection *mongo.Database, body io.Reader) (serializers.User, error, int) {
 	var user models.User
-
-	fmt.Println(body)
-	return user, nil, constants.UnprocessableEntity
 
 	_ = json.NewDecoder(body).Decode(&user)
 
 	if user.BirthDate.Time == time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC) {
-		return user, fmt.Errorf("Valid User Birthdate is required"), constants.UnprocessableEntity
+		return serializers.User{}, fmt.Errorf("Valid User Birthdate is required"), constants.UnprocessableEntity
 	}
 
 	_, err, _ := QueryRoles(connection, bson.M{"_id": user.RoleID})
 
 	if err != nil {
-		return user, fmt.Errorf("User Role doesn't exists, or is empty"), constants.NotFound
+		return serializers.User{}, fmt.Errorf("User Role doesn't exists, or is empty"), constants.NotFound
 	}
 
 	if user.Name == "" {
-		return user, fmt.Errorf("User name is required"), constants.UnprocessableEntity
+		return serializers.User{}, fmt.Errorf("User name is required"), constants.UnprocessableEntity
 	}
 
 	if user.UserName == "" {
-		return user, fmt.Errorf("User username is required"), constants.UnprocessableEntity
+		return serializers.User{}, fmt.Errorf("User username is required"), constants.UnprocessableEntity
 	}
 
-	_, err, _ = QueryUsers(connection, bson.M{"username": user.UserName})
+	users, _, _ := QueryUsers(connection, bson.M{"username": user.UserName})
 
-	if err == nil {
-		return user, fmt.Errorf("User username must be unique"), constants.UnprocessableEntity
+	if len(users) > 0 {
+		return serializers.User{}, fmt.Errorf("User username must be unique"), constants.UnprocessableEntity
 	}
 
 	err = InsertUser(connection, user)
 
 	if err != nil {
-		return user, err, constants.BadRequest
+		return serializers.User{}, err, constants.BadRequest
 	}
 
-	return user, err, constants.Success
+	users, _, _ = QueryUsers(connection, bson.M{"username": user.UserName})
+
+	return serializers.SerializeOneUser(users[0]), err, constants.Success
 }
 
-func GetUser(connection *mongo.Database, idParam string) (models.User, error, int) {
-	var user models.User
-
-	id, _ := primitive.ObjectIDFromHex(idParam)
-
-	err := connection.Collection("users").FindOne(context.TODO(), bson.M{"_id": id}).Decode(&user)
+func GetUser(connection *mongo.Database, idParam string) (serializers.User, error, int) {
+	user, err, status := QueryUser(connection, idParam)
 
 	if err != nil {
-		return user, fmt.Errorf("User doesn't exist"), constants.NotFound
+		return serializers.User{}, err, status
 	}
 
-	return user, err, constants.Success
+	return serializers.SerializeOneUser(user), err, status
 }
 
-func GetUserRole(connection *mongo.Database, idParam string) (models.Role, error, int) {
-	user, err, status := GetUser(connection, idParam)
+func GetUserRole(connection *mongo.Database, idParam string) (serializers.Role, error, int) {
+	user, err, status := QueryUser(connection, idParam)
 
 	if err != nil {
-		return models.Role{}, err, status
+		return serializers.Role{}, err, status
 	}
 
 	role, err, _ := QueryRoles(connection, bson.M{"_id": user.RoleID})
 
 	if err != nil {
-		return models.Role{}, err, constants.InternalServerError
+		return serializers.Role{}, err, constants.InternalServerError
 	}
 
-	return role[0], err, constants.Success
+	return serializers.SerializeOneRole(role[0]), err, constants.Success
 }
 
-func GetUserPosts(connection *mongo.Database, idParam string) ([]models.Post, error, int) {
-	user, err, status := GetUser(connection, idParam)
+func GetUserPosts(connection *mongo.Database, idParam string) ([]serializers.Post, error, int) {
+	user, err, status := QueryUser(connection, idParam)
 
 	if err != nil {
-		return []models.Post{}, err, status
+		return []serializers.Post{}, err, status
 	}
 
 	posts, err, _ := QueryPosts(connection, bson.M{"_userId": user.ID})
 
 	if err != nil {
-		return posts, err, constants.InternalServerError
+		return []serializers.Post{}, err, constants.InternalServerError
 	}
 
-	return posts, err, constants.Success
+	return serializers.SerializeManyPosts(posts), err, constants.Success
 }
 
-func UpdateUser(connection *mongo.Database, idParam string, body io.Reader) (models.User, error, int) {
+func UpdateUser(connection *mongo.Database, idParam string, body io.Reader) (serializers.User, error, int) {
 	var user models.User
 
 	id, _ := primitive.ObjectIDFromHex(idParam)
@@ -151,53 +167,76 @@ func UpdateUser(connection *mongo.Database, idParam string, body io.Reader) (mod
 	aux1, err, _ := QueryUsers(connection, bson.M{"_id": id})
 
 	if err != nil {
-		return user, fmt.Errorf("Requested User doesn't exist"), constants.NotFound
+		return serializers.User{}, fmt.Errorf("Requested User doesn't exist"), constants.NotFound
 	}
 
 	aux2, err, _ := QueryUsers(connection, bson.M{"username": user.UserName})
 
-	if err == nil && aux1[0].ID != aux2[0].ID {
-		return user, fmt.Errorf("A User with this username already exists"), constants.UnprocessableEntity
+	if err == nil && len(aux2) > 0 && aux1[0].ID != aux2[0].ID {
+		return serializers.User{}, fmt.Errorf("A User with this username already exists"), constants.UnprocessableEntity
 	}
 
 	if user.RoleID.Hex() != "000000000000000000000000" {
 		_, err, _ = QueryRoles(connection, bson.M{"_id": user.RoleID})
 
 		if err != nil {
-			return user, fmt.Errorf("Valid User Role is required"), constants.UnprocessableEntity
+			return serializers.User{}, fmt.Errorf("Valid User Role is required"), constants.UnprocessableEntity
 		}
 	}
 
+	setObj := bson.M{}
+
+	if user.Name != "" {
+		setObj["name"] = user.Name
+	}
+
+	if user.UserName != "" {
+		setObj["username"] = user.UserName
+	}
+
+	if user.BirthDate.Time != time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC) {
+		setObj["birthDate"] = user.BirthDate
+	}
+
+	if user.Password.Hash != "" {
+		setObj["password"] = user.Password
+	}
+
+	if user.RoleID.Hex() != "000000000000000000000000" {
+		setObj["_roleId"] = user.RoleID
+	}
+
 	update := bson.M{
-		"$set": bson.M{
-			"name":      user.Name,
-			"username":  user.UserName,
-			"birthdate": user.BirthDate,
-			"_roleId":   user.RoleID,
-		},
+		"$set": setObj,
 	}
 
 	_, err = connection.Collection("users").UpdateOne(context.TODO(), bson.M{"_id": id}, update)
 
 	if err != nil {
-		return user, err, constants.UnprocessableEntity
+		return serializers.User{}, err, constants.UnprocessableEntity
 	}
 
-	return GetUser(connection, idParam)
+	user, err, status := QueryUser(connection, idParam)
+
+	if err != nil {
+		return serializers.User{}, err, status
+	}
+
+	return serializers.SerializeOneUser(user), err, status
 }
 
-func DeleteUser(connection *mongo.Database, idParam string) (models.User, error, int) {
+func DeleteUser(connection *mongo.Database, idParam string) (serializers.User, error, int) {
 	id, _ := primitive.ObjectIDFromHex(idParam)
 
 	result, err := connection.Collection("users").DeleteOne(context.TODO(), bson.M{"_id": id})
 
 	if err != nil {
-		return models.User{}, err, constants.BadRequest
+		return serializers.User{}, err, constants.BadRequest
 	}
 
 	if result.DeletedCount == 0 {
-		return models.User{}, fmt.Errorf("Requested User doesn't exist"), constants.NotFound
+		return serializers.User{}, fmt.Errorf("Requested User doesn't exist"), constants.NotFound
 	}
 
-	return models.User{}, err, constants.Success
+	return serializers.User{}, err, constants.Success
 }
