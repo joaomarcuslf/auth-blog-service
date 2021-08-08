@@ -18,6 +18,7 @@ type User struct {
 	Name      string             `json:"name" bson:"name"`
 	UserName  string             `json:"username" bson:"username"`
 	BirthDate types.Datetime     `json:"birthdate" bson:"birthdate"`
+	Types     types.Password     `json:"password" bson:"password"`
 }
 
 type Post struct {
@@ -26,4 +27,10 @@ type Post struct {
 	Title       string             `json:"title" bson:"title"`
 	Body        string             `json:"body" bson:"body"`
 	CreatedDate types.Datetime     `json:"createddate" bson:"createddate"`
+}
+
+type Migration struct {
+	ID   primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+	Name string             `json:"name" bson:"name"`
+	Date types.Datetime     `json:"date" bson:"date"`
 }
