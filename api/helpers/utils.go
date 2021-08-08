@@ -1,6 +1,6 @@
 package helpers
 
-func contains(slice []string, item string) bool {
+func Contains(slice []string, item string) bool {
 	set := make(map[string]struct{}, len(slice))
 	for _, s := range slice {
 		set[s] = struct{}{}
@@ -10,12 +10,12 @@ func contains(slice []string, item string) bool {
 	return ok
 }
 
-func containsSubSLice(s1 []string, s2 []string) bool {
+func ContainsSubSLice(s1 []string, s2 []string) bool {
 	if len(s1) > len(s2) {
 		return false
 	}
 	for _, e := range s1 {
-		if !contains(s2, e) {
+		if !Contains(s2, e) {
 			return false
 		}
 	}
