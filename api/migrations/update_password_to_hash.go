@@ -23,7 +23,7 @@ func UpdatePasswordToHash(connection *mongo.Database) {
 		},
 	}
 
-	_, err := connection.Collection("users").UpdateMany(context.TODO(), bson.M{}, update)
+	_, err := connection.Collection("users").UpdateMany(context.TODO(), bson.M{"password": bson.M{"Hash": bson.M{}}}, update)
 
 	if err != nil {
 		panic(err)
