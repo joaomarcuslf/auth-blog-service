@@ -13,12 +13,10 @@ import (
 )
 
 var list = []types.Migration{
-	{
-		Name: "add_password_to_user_model",
-	},
-	{
-		Name: "update_password_to_hash",
-	},
+	{Name: "add_password_to_user_model"},
+	{Name: "update_password_to_hash"},
+	{Name: "update_birthdate_to_birthDate_in_user"},
+	{Name: "update_createddate_to_createdDate_in_post"},
 }
 
 func GetList() []types.Migration {
@@ -32,6 +30,12 @@ func Implementations(connection *mongo.Database, key string) {
 		break
 	case "update_password_to_hash":
 		UpdatePasswordToHash(connection)
+		break
+	case "update_createddate_to_createdDate_in_post":
+		UpdateCreateddateToCreatedDateInPost(connection)
+		break
+	case "update_birthdate_to_birthDate_in_user":
+		UpdateBirthdateToBirthDateInUser(connection)
 		break
 	}
 }

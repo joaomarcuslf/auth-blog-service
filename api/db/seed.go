@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"gopkg.in/mgo.v2/bson"
 
+	helpers "auth_blog_service/helpers"
 	"auth_blog_service/models"
 	repositories "auth_blog_service/repositories"
 	types "auth_blog_service/types"
@@ -57,19 +58,28 @@ func Seed(connection *mongo.Database) {
 		userRole, _, _ := repositories.QueryRoles(connection, bson.M{"name": "User"})
 		adminRole, _, _ := repositories.QueryRoles(connection, bson.M{"name": "Admin"})
 
+		userPass, _ := helpers.HashPassword("user123")
+		adminPass, _ := helpers.HashPassword("admin123")
+
 		users := []models.User{
 			{
 				RoleID:   userRole[0].ID,
-				UserName: "Test",
+				UserName: "user",
 				Name:     "Test",
+				Password: types.Password{
+					Hash: userPass,
+				},
 				BirthDate: types.Datetime{
 					Time: time.Date(1996, 6, 26, 0, 0, 0, 0, time.UTC),
 				},
 			},
 			{
 				RoleID:   adminRole[0].ID,
-				UserName: "Admin",
+				UserName: "admin",
 				Name:     "Admin Test",
+				Password: types.Password{
+					Hash: adminPass,
+				},
 				BirthDate: types.Datetime{
 					Time: time.Date(1996, 6, 26, 0, 0, 0, 0, time.UTC),
 				},
@@ -86,7 +96,7 @@ func Seed(connection *mongo.Database) {
 	if len(posts) == 0 {
 		fmt.Println("Seeding posts")
 
-		user, _, _ := repositories.QueryUsers(connection, bson.M{"username": "Test"})
+		user, _, _ := repositories.QueryUsers(connection, bson.M{"username": "user"})
 
 		posts := []models.Post{
 			{
