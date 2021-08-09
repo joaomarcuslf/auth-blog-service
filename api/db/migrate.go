@@ -11,7 +11,8 @@ func Migrate(connection *mongo.Database) {
 		_, err := migrations.GetMigrations(connection, migration.Name)
 
 		if err != nil {
-			migrations.Implementations(connection, migration.Name)
+			migration.Implementation(connection)
+
 			migrations.SaveMigration(connection, migration.Name)
 		}
 	}

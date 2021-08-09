@@ -123,8 +123,6 @@ func ExtractTokenMetadata(tokenString string) (string, string, error) {
 
 		roleId := fmt.Sprintf("%s", claims["role_id"])
 
-		fmt.Println(claims)
-
 		return string(userId), string(roleId), nil
 	}
 

@@ -13,35 +13,30 @@ import (
 )
 
 var list = []types.Migration{
-	{Name: "add_password_to_user_model"},
-	{Name: "update_password_to_hash"},
-	{Name: "update_birthdate_to_birthDate_in_user"},
-	{Name: "update_createddate_to_createdDate_in_post"},
-	{Name: "add_new_permissions_to_admin"},
+	{
+		Name:           "add_password_to_user_model",
+		Implementation: AddPasswordToUserModel,
+	},
+	{
+		Name:           "update_password_to_hash",
+		Implementation: UpdatePasswordToHash,
+	},
+	{
+		Name:           "update_birthdate_to_birthDate_in_user",
+		Implementation: UpdateCreateddateToCreatedDateInPost,
+	},
+	{
+		Name:           "update_createddate_to_createdDate_in_post",
+		Implementation: UpdateBirthdateToBirthDateInUser,
+	},
+	{
+		Name:           "add_new_permissions_to_admin",
+		Implementation: AddNewPermissionsToAdmin,
+	},
 }
 
 func GetList() []types.Migration {
 	return list
-}
-
-func Implementations(connection *mongo.Database, key string) {
-	switch key {
-	case "add_password_to_user_model":
-		AddPasswordToUserModel(connection)
-		break
-	case "update_password_to_hash":
-		UpdatePasswordToHash(connection)
-		break
-	case "update_createddate_to_createdDate_in_post":
-		UpdateCreateddateToCreatedDateInPost(connection)
-		break
-	case "update_birthdate_to_birthDate_in_user":
-		UpdateBirthdateToBirthDateInUser(connection)
-		break
-	case "add_new_permissions_to_admin":
-		AddNewPermissionsToAdmin(connection)
-		break
-	}
 }
 
 func SaveMigration(connection *mongo.Database, key string) (models.Migration, error) {
