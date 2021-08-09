@@ -37,17 +37,20 @@ func logHandler(fn http.HandlerFunc) http.HandlerFunc {
 func main() {
 	r := mux.NewRouter()
 
+	db.Seed(connection)
+	db.Migrate(connection)
+
 	r.HandleFunc("/health", logHandler(HealthResponse)).Methods("GET")
 
-	r.HandleFunc("/api/roles", logHandler(controllers.GetRoles(connection))).Methods("GET")
+	r.HandleFunc("/api/roles", logHandler(controllers.GetRoles(connection, "role.read"))).Methods("GET")
 	r.HandleFunc("/api/roles", logHandler(controllers.CreateRole(connection, "role.create"))).Methods("POST")
-	r.HandleFunc("/api/roles/{id}", logHandler(controllers.GetRoleById(connection))).Methods("GET")
+	r.HandleFunc("/api/roles/{id}", logHandler(controllers.GetRoleById(connection, "role.read"))).Methods("GET")
 	r.HandleFunc("/api/roles/{id}", logHandler(controllers.UpdateRoleById(connection, "role.update"))).Methods("PUT")
 	r.HandleFunc("/api/roles/{id}", logHandler(controllers.DeleteRoleById(connection, "role.delete"))).Methods("DELETE")
 
-	r.HandleFunc("/api/users", logHandler(controllers.GetUsers(connection))).Methods("GET")
+	r.HandleFunc("/api/users", logHandler(controllers.GetUsers(connection, "user.read"))).Methods("GET")
 	r.HandleFunc("/api/users", logHandler(controllers.CreateUser(connection, "user.create"))).Methods("POST")
-	r.HandleFunc("/api/users/{id}", logHandler(controllers.GetUserById(connection))).Methods("GET")
+	r.HandleFunc("/api/users/{id}", logHandler(controllers.GetUserById(connection, "user.read"))).Methods("GET")
 	r.HandleFunc("/api/users/{id}/role", logHandler(controllers.GetUserRoleById(connection))).Methods("GET")
 	r.HandleFunc("/api/users/{id}/posts", logHandler(controllers.GetUserPostsById(connection))).Methods("GET")
 	r.HandleFunc("/api/users/{id}", logHandler(controllers.UpdateUserById(connection, "user.update"))).Methods("PUT")
@@ -58,6 +61,9 @@ func main() {
 	r.HandleFunc("/api/posts/{id}", logHandler(controllers.GetPostById(connection))).Methods("GET")
 	r.HandleFunc("/api/posts/{id}", logHandler(controllers.UpdatePostById(connection, "post.update"))).Methods("PUT")
 	r.HandleFunc("/api/posts/{id}", logHandler(controllers.DeletePostById(connection, "post.delete"))).Methods("DELETE")
+
+	r.HandleFunc("/api/login", logHandler(controllers.Login(connection))).Methods("POST")
+	r.HandleFunc("/api/logout", logHandler(controllers.Logout(connection))).Methods("POST")
 
 	var port = os.Getenv("PORT")
 
