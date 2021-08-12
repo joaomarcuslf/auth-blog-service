@@ -4,4 +4,4 @@
 
 npm run pre-commit
 
-cd api && go build main.go && rm main
+cd api && go build main.go && rm main && go test -v ./...

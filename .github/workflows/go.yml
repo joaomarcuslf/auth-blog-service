@@ -43,4 +43,4 @@ jobs:
       - name: Run tests 🧪
         run: |
           cd api
-          go test
+          go test -v ./...

@@ -8,7 +8,8 @@
     "prepare": "husky install",
     "pre-commit": "lint-staged",
     "start": "docker-compose up -d",
-    "log:api": "docker-compose logs -f api"
+    "log:api": "docker-compose logs -f api",
+    "test:api": "cd api && go test -v ./..."
   },
   "keywords": [],
   "description": "",
